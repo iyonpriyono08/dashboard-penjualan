@@ -6,7 +6,7 @@ from datetime import datetime
 
 # Load credentials dari secrets
 creds = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_credentials"],
+    st.secrets["iyon-386403-ad53c5aa74d6.json"],
     scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 )
 client = gspread.authorize(creds)
@@ -78,3 +78,4 @@ elif menu == "Input Penjualan":
 elif menu == "Pendapatan Bulanan":
     st.subheader("Pendapatan Bulan Ini")
     st.dataframe(monthly_revenue())
+
