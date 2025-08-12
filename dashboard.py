@@ -45,5 +45,26 @@ col3.metric("Produk Terlaris", produk_terlaris)
 
 # --- GRAFIK PENJUALAN PER HARI ---
 penjualan_per_hari = df.groupby("Tanggal").agg({"Jumlah": "sum"}).reset_index()
-fig1 = px.line(p
+fig1 = px.line(
+    penjualan_per_hari,
+    x="Tanggal",
+    y="Jumlah",
+    title="📈 Penjualan Harian",
+    markers=True
+)
+st.plotly_chart(fig1, use_container_width=True)
 
+# --- GRAFIK PENJUALAN PER PRODUK ---
+penjualan_per_produk = df.groupby("Produk").agg({"Jumlah": "sum"}).reset_index()
+fig2 = px.bar(
+    penjualan_per_produk,
+    x="Produk",
+    y="Jumlah",
+    title="🏷️ Penjualan per Produk",
+    text="Jumlah"
+)
+fig2.update_traces(textposition="outside")
+st.plotly_chart(fig2, use_container_width=True)
+
+# --- FOOTER ---
+st.caption("Data diambil langsung dari Google Sheet (tanpa API Key)")
