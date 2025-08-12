@@ -46,3 +46,4 @@ col3.metric("Produk Terlaris", produk_terlaris)
 # --- GRAFIK PENJUALAN PER HARI ---
 penjualan_per_hari = df.groupby("Tanggal").agg({"Jumlah": "sum"}).reset_index()
 fig1 = px.line(p
+
