@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 from datetime import datetime
 
-API_URL = "PASTE_URL_WEB_APP_DISINI"  # Ganti dengan URL dari Google Apps Script
+API_URL = "https://script.google.com/macros/s/AKfycby0AnsebkkN3hRk3LUyWi3VXiwWRenqS1KZePf7ru6f8rXxTzoColoOC8zvmTHKzB4yMg/exec"  # Ganti dengan URL dari Google Apps Script
 
 st.title("📊 Dashboard Penjualan")
 
@@ -40,3 +40,4 @@ if st.button("Simpan"):
 # Statistik
 st.subheader("📈 Statistik")
 st.write(f"Total Pendapatan: Rp {df['Pendapatan'].sum():,.0f}")
+
