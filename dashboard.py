@@ -1,70 +1,52 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 import plotly.express as px
 
-# --- CONFIGURASI ---
-st.set_page_config(page_title="📊 Dashboard Penjualan", layout="wide")
+# URL CSV Google Sheet
+# Ganti dengan URL CSV hasil "Publish to the web"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS9GM2tHh38T7TQeAw8myUrJxWsSu4B2m33Omt27sWfnRoNs_qMjHl46YZjCEGpD6kAoy3eb1nwE30Z/pub?gid=0&single=true&output=csv"
 
-# --- URL Google Sheet (Ganti dengan punyamu) ---
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1k9Orw5Cr17DgoHj0XaYsGPHAeBd0xGA4aSjyJ8lC-Kc/edit?usp=sharing"
-CSV_URL = SHEET_URL.replace("/edit#gid=", "/export?format=csv&gid=")
+# Load data dari Google Sheet
+df = pd.read_csv(SHEET_URL)
 
-# --- LOAD DATA ---
-@st.cache_data
-def load_data(url):
-    return pd.read_csv(url)
+# Judul Dashboard
+st.title("📊 Dashboard Penjualan & Stok")
 
-try:
-    df = load_data(CSV_URL)
-except Exception as e:
-    st.error(f"Gagal memuat data: {e}")
-    st.stop()
+# Tampilkan tabel
+st.subheader("Data Penjualan")
+st.dataframe(df)
 
-# --- TAMPILKAN DATA ---
-st.title("📊 Dashboard Penjualan")
-st.dataframe(df, use_container_width=True)
-
-# Pastikan kolom ada
-required_columns = {"Tanggal", "Produk", "Jumlah", "Pendapatan"}
-if not required_columns.issubset(df.columns):
-    st.error(f"Kolom wajib tidak lengkap. Harus ada: {', '.join(required_columns)}")
-    st.stop()
-
-# --- KONVERSI TIPE DATA ---
-df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
-
-# --- METRIK UTAMA ---
-total_penjualan = df["Jumlah"].sum()
-total_pendapatan = df["Pendapatan"].sum()
-produk_terlaris = df.groupby("Produk")["Jumlah"].sum().idxmax()
-
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Unit Terjual", f"{total_penjualan:,}")
-col2.metric("Total Pendapatan", f"Rp {total_pendapatan:,.0f}")
-col3.metric("Produk Terlaris", produk_terlaris)
-
-# --- GRAFIK PENJUALAN PER HARI ---
-penjualan_per_hari = df.groupby("Tanggal").agg({"Jumlah": "sum"}).reset_index()
-fig1 = px.line(
-    penjualan_per_hari,
-    x="Tanggal",
-    y="Jumlah",
-    title="📈 Penjualan Harian",
-    markers=True
-)
-st.plotly_chart(fig1, use_container_width=True)
-
-# --- GRAFIK PENJUALAN PER PRODUK ---
-penjualan_per_produk = df.groupby("Produk").agg({"Jumlah": "sum"}).reset_index()
-fig2 = px.bar(
-    penjualan_per_produk,
+# Grafik Pendapatan
+fig1 = px.bar(
+    df,
     x="Produk",
-    y="Jumlah",
-    title="🏷️ Penjualan per Produk",
-    text="Jumlah"
+    y="Pendapatan",
+    color="Produk",
+    title="Pendapatan per Produk",
+    text_auto=True
 )
-fig2.update_traces(textposition="outside")
-st.plotly_chart(fig2, use_container_width=True)
+st.plotly_chart(fig1)
 
-# --- FOOTER ---
-st.caption("Data diambil langsung dari Google Sheet (tanpa API Key)")
+# Grafik Stok Tersisa
+fig2 = px.bar(
+    df,
+    x="Produk",
+    y="Stok Tersisa",
+    color="Produk",
+    title="Sisa Stok per Produk",
+    text_auto=True
+)
+st.plotly_chart(fig2)
+
+# Grafik Tren Penjualan berdasarkan tanggal
+fig3 = px.line(
+    df,
+    x="Tanggal",
+    y="Pendapatan",
+    color="Produk",
+    markers=True,
+    title="Tren Pendapatan Harian"
+)
+st.plotly_chart(fig3)
+
+st.caption("📌 Data diperbarui otomatis dari Google Sheet setiap kali ada perubahan.")
