@@ -1,52 +1,42 @@
-import pandas as pd
 import streamlit as st
-import plotly.express as px
+import pandas as pd
+import requests
+from datetime import datetime
 
-# URL CSV Google Sheet
-# Ganti dengan URL CSV hasil "Publish to the web"
-SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS9GM2tHh38T7TQeAw8myUrJxWsSu4B2m33Omt27sWfnRoNs_qMjHl46YZjCEGpD6kAoy3eb1nwE30Z/pub?gid=0&single=true&output=csv"
+API_URL = "PASTE_URL_WEB_APP_DISINI"  # Ganti dengan URL dari Google Apps Script
 
-# Load data dari Google Sheet
-df = pd.read_csv(SHEET_URL)
+st.title("📊 Dashboard Penjualan")
 
-# Judul Dashboard
-st.title("📊 Dashboard Penjualan & Stok")
+# Fungsi ambil data
+@st.cache_data(ttl=60)
+def load_data():
+    response = requests.get(API_URL)
+    data = response.json()
+    df = pd.DataFrame(data[1:], columns=data[0])  # row pertama = header
+    df["Harga"] = pd.to_numeric(df["Harga"], errors="coerce")
+    df["Jumlah Terjual"] = pd.to_numeric(df["Jumlah Terjual"], errors="coerce")
+    df["Pendapatan"] = df["Harga"] * df["Jumlah Terjual"]
+    return df
 
-# Tampilkan tabel
-st.subheader("Data Penjualan")
+# Tampilkan data
+df = load_data()
 st.dataframe(df)
 
-# Grafik Pendapatan
-fig1 = px.bar(
-    df,
-    x="Produk",
-    y="Pendapatan",
-    color="Produk",
-    title="Pendapatan per Produk",
-    text_auto=True
-)
-st.plotly_chart(fig1)
+# Tambah transaksi baru
+st.subheader("➕ Tambah Transaksi")
+produk = st.text_input("Nama Produk")
+harga = st.number_input("Harga", min_value=0)
+stok = st.number_input("Stok", min_value=0)
+terjual = st.number_input("Jumlah Terjual", min_value=0)
 
-# Grafik Stok Tersisa
-fig2 = px.bar(
-    df,
-    x="Produk",
-    y="Stok Tersisa",
-    color="Produk",
-    title="Sisa Stok per Produk",
-    text_auto=True
-)
-st.plotly_chart(fig2)
+if st.button("Simpan"):
+    today = datetime.now().strftime("%Y-%m-%d")
+    pendapatan = harga * terjual
+    row = [today, produk, harga, stok, terjual, pendapatan]
+    requests.post(API_URL, json=row)
+    st.success("Transaksi berhasil disimpan!")
+    st.cache_data.clear()
 
-# Grafik Tren Penjualan berdasarkan tanggal
-fig3 = px.line(
-    df,
-    x="Tanggal",
-    y="Pendapatan",
-    color="Produk",
-    markers=True,
-    title="Tren Pendapatan Harian"
-)
-st.plotly_chart(fig3)
-
-st.caption("📌 Data diperbarui otomatis dari Google Sheet setiap kali ada perubahan.")
+# Statistik
+st.subheader("📈 Statistik")
+st.write(f"Total Pendapatan: Rp {df['Pendapatan'].sum():,.0f}")
