@@ -1,38 +1,48 @@
 import streamlit as st
 import pandas as pd
-from streamlit_gsheets import GSheetsConnection
+import plotly.express as px
 
-st.set_page_config(page_title="Sales Dashboard", layout="wide")
+# --- CONFIGURASI ---
+st.set_page_config(page_title="📊 Dashboard Penjualan", layout="wide")
 
-# Connect ke Google Sheets
-conn = st.connection("gsheets", type=GSheetsConnection)
+# --- URL Google Sheet (Ganti dengan punyamu) ---
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1k9Orw5Cr17DgoHj0XaYsGPHAeBd0xGA4aSjyJ8lC-Kc/edit?usp=sharing"
+CSV_URL = SHEET_URL.replace("/edit#gid=", "/export?format=csv&gid=")
 
-# Ambil data dari sheet "Stock"
-df = conn.read(worksheet="Stock", usecols=[0,1,2,3,4], ttl=5)
-df = df.fillna(0)
+# --- LOAD DATA ---
+@st.cache_data
+def load_data(url):
+    return pd.read_csv(url)
 
-st.title("📊 Sales Dashboard")
+try:
+    df = load_data(CSV_URL)
+except Exception as e:
+    st.error(f"Gagal memuat data: {e}")
+    st.stop()
 
-# Tampilkan tabel stok
-st.subheader("Current Stock")
-st.dataframe(df)
+# --- TAMPILKAN DATA ---
+st.title("📊 Dashboard Penjualan")
+st.dataframe(df, use_container_width=True)
 
-# Form input penjualan
-st.subheader("Record a Sale")
-item_list = df["Item"].tolist()
-item = st.selectbox("Select Item", item_list)
-qty = st.number_input("Quantity Sold", min_value=1)
+# Pastikan kolom ada
+required_columns = {"Tanggal", "Produk", "Jumlah", "Pendapatan"}
+if not required_columns.issubset(df.columns):
+    st.error(f"Kolom wajib tidak lengkap. Harus ada: {', '.join(required_columns)}")
+    st.stop()
 
-if st.button("Submit Sale"):
-    idx = df[df["Item"] == item].index[0]
-    df.loc[idx, "Stock"] -= qty
-    df.loc[idx, "Sold"] += qty
-    df.loc[idx, "Revenue"] = df.loc[idx, "Sold"] * df.loc[idx, "Price"]
+# --- KONVERSI TIPE DATA ---
+df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 
-    # Update data di Google Sheets
-    conn.update(worksheet="Stock", data=df)
-    st.success(f"Sale recorded for {item}!")
+# --- METRIK UTAMA ---
+total_penjualan = df["Jumlah"].sum()
+total_pendapatan = df["Pendapatan"].sum()
+produk_terlaris = df.groupby("Produk")["Jumlah"].sum().idxmax()
 
-# Grafik pendapatan
-st.subheader("Monthly Revenue")
-st.bar_chart(df.set_index("Item")["Revenue"])
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Unit Terjual", f"{total_penjualan:,}")
+col2.metric("Total Pendapatan", f"Rp {total_pendapatan:,.0f}")
+col3.metric("Produk Terlaris", produk_terlaris)
+
+# --- GRAFIK PENJUALAN PER HARI ---
+penjualan_per_hari = df.groupby("Tanggal").agg({"Jumlah": "sum"}).reset_index()
+fig1 = px.line(p
